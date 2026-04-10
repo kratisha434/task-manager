@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Depends # type: ignore
-from sqlalchemy.orm import Session # type: ignore
-from fastapi.middleware.cors import CORSMiddleware # type: ignore
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine, Base
 from models.task import Task
@@ -9,7 +9,7 @@ from schemas.task import TaskCreate
 
 app = FastAPI()
 
-# ✅ CORS (important)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ create tables
 Base.metadata.create_all(bind=engine)
 
 
@@ -27,7 +26,7 @@ def root():
     return {"message": "API running"}
 
 
-# 🧠 SMART PRIORITY FUNCTION (FREE AI)
+# 🔹 Smart Priority Function
 def get_priority(text: str) -> str:
     text = text.lower()
 
@@ -56,29 +55,53 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     db.refresh(new_task)
 
     return {
-        "message": "Task created",
-        "priority": smart_priority,
-        "task_id": new_task.id
+        "success": True,
+        "data": new_task
     }
 
 
-# ✅ GET TASKS
+# ✅ GET ALL TASKS
 @app.get("/tasks")
 def get_tasks(db: Session = Depends(get_db)):
     tasks = db.query(Task).all()
-    return tasks
 
-@app.put("/tasks/{task_id}")
+    return {
+        "success": True,
+        "data": tasks
+    }
+
+
+# ✅ UPDATE (TOGGLE COMPLETE) → PATCH
+@app.patch("/tasks/{task_id}")
 def update_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
 
     if not task:
-        return {"error": "Task not found"}
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    # toggle completed
-    task.completed = not getattr(task, "completed", False)
+    task.completed = not task.completed
 
     db.commit()
     db.refresh(task)
 
-    return task
+    return {
+        "success": True,
+        "data": task
+    }
+
+
+# ✅ DELETE TASK
+@app.delete("/tasks/{task_id}")
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    db.delete(task)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Task deleted"
+    }

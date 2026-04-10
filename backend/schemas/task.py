@@ -5,3 +5,4 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = ""
     priority: Optional[str] = "medium"
+    completed: bool = False

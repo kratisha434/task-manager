@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getTasks, toggleTask } from "../api/taskApi";
+import { getTasks, toggleTask, deleteTask } from "../api/taskApi";
 
 type Task = {
   id: number;
@@ -11,15 +11,39 @@ type Task = {
 
 function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const data = await getTasks();
+      setTasks(data);
+    } catch (err) {
+      alert("Error fetching tasks");
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    getTasks().then(setTasks);
+    fetchTasks();
   }, []);
 
   const handleToggle = async (id: number) => {
-    await toggleTask(id);
-    const updated = await getTasks();
-    setTasks(updated);
+    try {
+      await toggleTask(id);
+      fetchTasks();
+    } catch (err) {
+      alert("Error updating task");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteTask(id);
+      fetchTasks();
+    } catch (err) {
+      alert("Error deleting task");
+    }
   };
 
   const getColor = (priority: string) => {
@@ -52,7 +76,9 @@ function Home() {
         + Create Task
       </a>
 
-      {tasks.length === 0 ? (
+      {loading && <p style={{ textAlign: "center" }}>Loading...</p>}
+
+      {!loading && tasks.length === 0 ? (
         <div style={{ textAlign: "center", marginTop: "50px", opacity: 0.7 }}>
           <h3>No tasks yet 💤</h3>
           <p>Create your first task to get started</p>
@@ -98,6 +124,7 @@ function Home() {
                 {task.priority}
               </span>
 
+              {/* Toggle Button */}
               <button
                 onClick={() => handleToggle(task.id)}
                 style={{
@@ -111,6 +138,23 @@ function Home() {
                 }}
               >
                 {task.completed ? "Completed" : "Mark Complete"}
+              </button>
+
+              {/* DELETE BUTTON (NEW) */}
+              <button
+                onClick={() => handleDelete(task.id)}
+                style={{
+                  marginTop: "10px",
+                  marginLeft: "10px",
+                  padding: "6px 10px",
+                  background: "#ff4d4f",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete
               </button>
             </div>
           ))}

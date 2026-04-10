@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { createTask } from "../api/taskApi";
+import { useNavigate } from "react-router-dom";
 
 function CreateTask() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    await createTask({ title, description });
+    try {
+      await createTask({ title, description });
 
-    alert("Task created!");
-    setTitle("");
-    setDescription("");
+      alert("Task created!");
+      navigate("/"); // 🔥 redirect to home
+    } catch (err) {
+      alert("Error creating task");
+    }
   };
 
   return (
